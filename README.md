@@ -58,6 +58,7 @@ call +254790936238
 📧 osorobrevin@gmail.com
 🐙 github.com/osorobrevin-web
 📍 Kisumu, Kenya 🇰🇪
+
  Note 💡
 
 I started coding on a phone with autocorrect 
