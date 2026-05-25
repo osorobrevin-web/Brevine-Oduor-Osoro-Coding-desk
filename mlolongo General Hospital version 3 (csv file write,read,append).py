@@ -4,14 +4,13 @@ import csv
 import os
 def create_file():
     headers=["Name","Age","Ward","Diagnosis","Gender","DOA"]
-if os.path.exists("New_patients.csv"):
-    print("File for patients already exists, creation skipped")
-else:
-    file=open("New_patients.csv","w",newline="")
-    writer=csv.writer(file)
-    writer.writerow(headers)
-    file.close()
-    print("File created with headers successfully!")
+    if os.path.exists("New_patients.csv"):
+        print("File for patients already exists, creation skipped")
+    else:
+        with open("New_patients.csv", "w", newline="") as file:
+            writer=csv.writer(file)
+            writer.writerow(headers)
+            print("File created with headers successfully!")
 def add_patient():
     name=input("Patient Name: ")
     age=input("Age: ")
@@ -19,25 +18,22 @@ def add_patient():
     diagnosis=input("Diagnosis: ")
     gender=input("Gender: ")
     doa=datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
-    file=open("New_patients.csv","a",newline="")
-    writer=csv.writer(file)
-    writer.writerow([name,age,ward,diagnosis,gender,doa])
-    file.close()
+    with open("New_patients.csv", "a", newline="") as file:
+        writer=csv.writer(file)
+        writer.writerow([name,age,ward,diagnosis,gender,doa])
     print("Patient",name,"added successfully")
 def read_patients():
     patients={}
-    file=open("New_patients.csv","r")
-    reader=csv.DictReader(file)
-    for row in reader:
-        patients[row["Name"]]={
+    with open("New_patients.csv", "r") as file:
+        reader=csv.DictReader(file)
+        for row in reader:
+            patients[row["Name"]]={
             "Age":int(row["Age"]),
             "Ward":row["Ward"],
             "Gender":row["Gender"],
             "Diagnosis":row["Diagnosis"],
             "DOA":row["DOA"] 
         }
-            
-    file.close()
     return patients
     
 def login():
