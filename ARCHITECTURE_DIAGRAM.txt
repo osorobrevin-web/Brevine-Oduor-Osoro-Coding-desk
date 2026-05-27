@@ -1,0 +1,218 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                    TICKETZETU FLASK - ARCHITECTURE DIAGRAM                    ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+┌────────────────────────────────────────────────────────────────────────────────┐
+│                         WEB BROWSER (http://localhost:5000)                    │
+├────────────────────────────────────────────────────────────────────────────────┤
+│                              Flask Application                                 │
+│  ┌──────────────────────────────────────────────────────────────────────────┐  │
+│  │                         Authentication Layer                            │  │
+│  │  ┌─────────────────────────────────────────────────────────────────┐   │  │
+│  │  │  /auth/login          [LoginForm]                              │   │  │
+│  │  │  /auth/register       [RegisterForm - Select Role]             │   │  │
+│  │  │  /auth/logout         [Logout & Clear Session]                 │   │  │
+│  │  └─────────────────────────────────────────────────────────────────┘   │  │
+│  └──────────────────────────────────────────────────────────────────────────┘  │
+│                                     ↓                                           │
+│                          Current User Has Role                                  │
+│                                     ↓                                           │
+│  ┌──────────────────────────────────────────────────────────────────────────┐  │
+│  │                        Role-Based Routing (RBAC)                        │  │
+│  │                                                                         │  │
+│  │  IF role == 'admin'          IF role == 'client'  IF role == 'customer'  │
+│  │         ↓                            ↓                    ↓             │  │
+│  │    ┌─────────────────┐      ┌──────────────────┐   ┌──────────────────┐  │
+│  │    │  ADMIN ROUTES   │      │ CLIENT ROUTES    │   │CUSTOMER ROUTES   │  │
+│  │    ├─────────────────┤      ├──────────────────┤   ├──────────────────┤  │
+│  │    │ /admin/         │      │ /client/         │   │ /customer/       │  │
+│  │    │  dashboard      │      │  dashboard       │   │  dashboard       │  │
+│  │    │  users          │      │  events          │   │  browse          │  │
+│  │    │  events         │      │  create_event    │   │  event/<id>      │  │
+│  │    │  tickets        │      │  manage_tickets  │   │  buy             │  │
+│  │    │  payouts        │      │  commissions     │   │  purchases       │  │
+│  │    │  reports        │      │                  │   │  reviews         │  │
+│  │    └─────────────────┘      └──────────────────┘   └──────────────────┘  │
+│  │                                                                         │  │
+│  │  Each route protected by:   Each route protected by:  Each route      │  │
+│  │  @admin_required            @client_required        protected by:     │  │
+│  │  @login_required            @login_required         @customer_required│  │
+│  │                                                      @login_required   │  │
+│  └──────────────────────────────────────────────────────────────────────────┘  │
+│                                     ↓                                           │
+│  ┌──────────────────────────────────────────────────────────────────────────┐  │
+│  │                       Flask Template Rendering                          │  │
+│  │  ┌─────────────────┐  ┌──────────────────┐  ┌──────────────────────┐   │  │
+│  │  │ Admin Templates │  │ Client Templates │  │Customer Templates    │   │  │
+│  │  ├─────────────────┤  ├──────────────────┤  ├──────────────────────┤   │  │
+│  │  │ base.html       │  │ base.html        │  │ base.html            │   │  │
+│  │  │ admin/          │  │ client/          │  │ customer/            │   │  │
+│  │  │  dashboard.html │  │  dashboard.html  │  │  dashboard.html      │   │  │
+│  │  │  users.html     │  │  events.html     │  │  browse_events.html  │   │  │
+│  │  │  events.html    │  │  create_event.   │  │  event_detail.html   │   │  │
+│  │  │  tickets.html   │  │  manage_tickets. │  │  purchases.html      │   │  │
+│  │  │  payouts.html   │  │  event_detail.   │  │  review_event.html   │   │  │
+│  │  │  reports.html   │  │  commissions.    │  │  my_reviews.html     │   │  │
+│  │  │                 │  │  html            │  │                      │   │  │
+│  │  └─────────────────┘  └──────────────────┘  └──────────────────────┘   │  │
+│  └──────────────────────────────────────────────────────────────────────────┘  │
+│                         (Rendered with Bootstrap 5)                            │
+│                                     ↓                                           │
+│  ┌──────────────────────────────────────────────────────────────────────────┐  │
+│  │                   Data Access Layer (SQLAlchemy ORM)                    │  │
+│  │  ┌─────────────────────────────────────────────────────────────────┐   │  │
+│  │  │  app.models (Database Models)                                   │   │  │
+│  │  │  • User (with role: admin/client/customer)                      │   │  │
+│  │  │  • Event (created by client)                                    │   │  │
+│  │  │  • Ticket (managed by system)                                   │   │  │
+│  │  │  • Cancellation (refund tracking)                               │   │  │
+│  │  │  • Customer (customer profile)                                  │   │  │
+│  │  │  • Review (customer reviews)                                    │   │  │
+│  │  │  • Payout (client earnings)                                     │   │  │
+│  │  │  • Admin (admin profile)                                        │   │  │
+│  │  └─────────────────────────────────────────────────────────────────┘   │  │
+│  └──────────────────────────────────────────────────────────────────────────┘  │
+│                                     ↓                                           │
+│  ┌──────────────────────────────────────────────────────────────────────────┐  │
+│  │                    Database (ticketzetu.db - SQLite)                    │  │
+│  │  ┌────────────────────────────────────────────────────────────────┐   │  │
+│  │  │  8 Tables:                                                     │   │  │
+│  │  │  • users           (id, username, email, password_hash, role) │   │  │
+│  │  │  • events          (id, client_id, name, date, location)      │   │  │
+│  │  │  • tickets         (id, event_id, client_id, customer_id,     │   │  │
+│  │  │                     price, commission, status)                 │   │  │
+│  │  │  • cancellations   (id, ticket_id, reason, refund_amount)     │   │  │
+│  │  │  • customers       (id, bio, tickets_purchased, total_spent)  │   │  │
+│  │  │  • reviews         (id, event_id, customer_id, rating)        │   │  │
+│  │  │  • payouts         (id, client_id, amount, status)            │   │  │
+│  │  │  • admins          (id, permissions)                          │   │  │
+│  │  └────────────────────────────────────────────────────────────────┘   │  │
+│  └──────────────────────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────────────────┘
+
+REQUEST FLOW EXAMPLE: Admin Login & Access Dashboard
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. USER SUBMITS LOGIN FORM
+   ├─ POST /auth/login
+   ├─ LoginForm validation
+   └─ Username & Password submitted
+
+2. AUTHENTICATION
+   ├─ Query: User.query.filter_by(username=...)
+   ├─ Check password hash
+   ├─ Verify is_active
+   └─ login_user(user, remember_me=False)
+
+3. ROLE ROUTING
+   ├─ Check user.role
+   ├─ IF role == 'admin' → Redirect to /admin/dashboard
+   ├─ ELSE IF role == 'client' → Redirect to /client/dashboard
+   └─ ELSE → Redirect to /customer/dashboard
+
+4. ROUTE PROTECTION (Admin Example)
+   ├─ GET /admin/dashboard
+   ├─ @login_required decorator
+   │  └─ Check current_user.is_authenticated
+   ├─ @admin_required decorator
+   │  └─ Check current_user.is_admin()
+   └─ If both pass → Execute dashboard function
+
+5. DATA GATHERING
+   ├─ Query all users: User.query.all()
+   ├─ Count events: Event.query.count()
+   ├─ Sum revenue: db.session.query(db.func.sum(Ticket.price))
+   └─ Get statistics
+
+6. TEMPLATE RENDERING
+   ├─ render_template('admin/dashboard.html', ...)
+   ├─ base.html extends with Bootstrap layout
+   ├─ Admin sidebar navigation
+   └─ Dashboard statistics displayed
+
+7. RESPONSE TO BROWSER
+   └─ HTML page rendered & displayed
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+REQUEST FLOW EXAMPLE: Customer Purchases Ticket
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. CUSTOMER VIEWS EVENT
+   ├─ GET /customer/event/<event_id>
+   ├─ Query: Event.query.get_or_404(event_id)
+   ├─ Get available tickets: Ticket.query.filter_by(status='available')
+   └─ Render: customer/event_detail.html
+
+2. CUSTOMER CLICKS "BUY TICKET"
+   ├─ POST /customer/event/<event_id>/buy
+   ├─ @login_required + @customer_required checks
+   └─ Verify user is authenticated & customer
+
+3. BUSINESS LOGIC
+   ├─ Find available ticket: Ticket.query.filter_by(status='available').first()
+   ├─ Calculate commission: calculate_commission(ticket.price)
+   ├─ Update ticket:
+   │  ├─ ticket.customer_id = current_user.id
+   │  ├─ ticket.status = 'sold'
+   │  └─ ticket.purchased_at = now()
+   ├─ Update customer profile:
+   │  ├─ customer.tickets_purchased += 1
+   │  └─ customer.total_spent += ticket.price
+   └─ db.session.commit()
+
+4. DATABASE UPDATE
+   └─ SQLAlchemy ORM → UPDATE queries → SQLite
+
+5. REDIRECT & CONFIRM
+   ├─ Flash message: "Ticket purchased successfully!"
+   ├─ Redirect to /customer/purchases
+   └─ Show ticket in purchase history
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECURITY LAYERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Layer 1: Authentication
+  └─ Login required (session cookie + Flask-Login)
+
+Layer 2: Authorization
+  └─ Role checking (@admin_required, @client_required, @customer_required)
+
+Layer 3: Data Validation
+  └─ WTForms validators + form CSRF tokens (Flask-WTF)
+
+Layer 4: Database Security
+  └─ SQLAlchemy ORM prevents SQL injection
+
+Layer 5: Password Security
+  └─ Werkzeug password hashing (not plain text)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+KEY IMPROVEMENTS OVER ORIGINAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│  BEFORE: Three separate Python files                                       │
+│  ├─ client-1.py (1,123 lines)      ┐                                       │
+│  ├─ admin.py (1,361 lines)         ├─ 3,489 total lines                    │
+│  └─ customer.py (1,005 lines)      ┘ with lots of duplication              │
+│                                                                             │
+│  AFTER: Single modular Flask application                                   │
+│  ├─ Shared database models         ✓ DRY principle                         │
+│  ├─ Shared utilities               ✓ No code duplication                   │
+│  ├─ Role-based routing             ✓ Professional architecture             │
+│  ├─ Web interface (not console)    ✓ Professional UI with Bootstrap        │
+│  ├─ SQLite database (not CSV)      ✓ Relational schema                     │
+│  ├─ Enterprise security            ✓ Production-ready                      │
+│  └─ Cloud deployment ready         ✓ Scalable infrastructure               │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TICKETZETU Flask - Complete Role-Based Ticket Management System
+Powered by BReSCA | Brevine e-Systems Consultancy Agency, Kisumu Kenya

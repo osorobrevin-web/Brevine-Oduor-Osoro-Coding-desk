@@ -1,0 +1,180 @@
+from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask_login import login_required, current_user
+from datetime import datetime
+from app import db
+from app.decorators import customer_required
+from app.models import Event, Ticket, Review, Customer
+from app.core.utils import generate_id
+
+customer_bp = Blueprint('customer', __name__, url_prefix='/customer')
+
+
+@customer_bp.route('/dashboard')
+@login_required
+@customer_required
+def dashboard():
+    """Customer dashboard"""
+    customer_id = current_user.id
+    
+    # Purchase statistics
+    purchases = Ticket.query.filter_by(customer_id=customer_id, status='sold').all()
+    tickets_purchased = len(purchases)
+    total_spent = sum(t.price for t in purchases)
+    
+    # Recent purchases
+    recent_purchases = Ticket.query.filter_by(customer_id=customer_id, status='sold')\
+        .order_by(Ticket.purchased_at.desc()).limit(5).all()
+    
+    return render_template('customer/dashboard.html',
+                           tickets_purchased=tickets_purchased,
+                           total_spent=total_spent,
+                           recent_purchases=recent_purchases)
+
+
+@customer_bp.route('/browse')
+@login_required
+@customer_required
+def browse_events():
+    """Browse available events"""
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('search', '')
+    
+    query = Event.query
+    if search:
+        query = query.filter(Event.name.ilike(f'%{search}%') | Event.location.ilike(f'%{search}%'))
+    
+    events_paginated = query.paginate(page=page, per_page=12)
+    
+    return render_template('customer/browse_events.html',
+                           events=events_paginated.items,
+                           pagination=events_paginated,
+                           search=search)
+
+
+@customer_bp.route('/event/<event_id>')
+@login_required
+@customer_required
+def event_detail(event_id):
+    """Event details and ticket purchase"""
+    event = Event.query.get_or_404(event_id)
+    
+    available_tickets = Ticket.query.filter_by(event_id=event_id, status='available').all()
+    reviews = Review.query.filter_by(event_id=event_id).all()
+    
+    # Check if customer has purchased ticket to this event
+    purchased = Ticket.query.filter_by(event_id=event_id, customer_id=current_user.id, status='sold').first()
+    has_reviewed = Review.query.filter_by(event_id=event_id, customer_id=current_user.id).first()
+    
+    avg_rating = None
+    if reviews:
+        avg_rating = sum(r.rating for r in reviews) / len(reviews)
+    
+    return render_template('customer/event_detail.html',
+                           event=event,
+                           available_count=len(available_tickets),
+                           reviews=reviews,
+                           avg_rating=avg_rating,
+                           purchased=purchased is not None,
+                           has_reviewed=has_reviewed is not None)
+
+
+@customer_bp.route('/event/<event_id>/buy', methods=['POST'])
+@login_required
+@customer_required
+def buy_ticket(event_id):
+    """Purchase ticket for event"""
+    event = Event.query.get_or_404(event_id)
+    
+    # Find available ticket
+    ticket = Ticket.query.filter_by(event_id=event_id, status='available').first()
+    
+    if not ticket:
+        flash('No available tickets for this event.', 'danger')
+        return redirect(url_for('customer.event_detail', event_id=event_id))
+    
+    # Mark ticket as sold and assign to customer
+    ticket.customer_id = current_user.id
+    ticket.status = 'sold'
+    ticket.purchased_at = datetime.utcnow()
+    
+    # Update customer profile
+    customer = Customer.query.get(current_user.id)
+    if not customer:
+        customer = Customer(id=current_user.id)
+        db.session.add(customer)
+    
+    customer.tickets_purchased = (customer.tickets_purchased or 0) + 1
+    customer.total_spent = (customer.total_spent or 0) + ticket.price
+    
+    db.session.commit()
+    
+    flash(f'Ticket purchased successfully! Event: {event.name}', 'success')
+    return redirect(url_for('customer.purchases'))
+
+
+@customer_bp.route('/purchases')
+@login_required
+@customer_required
+def purchases():
+    """View purchased tickets"""
+    page = request.args.get('page', 1, type=int)
+    
+    purchases_paginated = Ticket.query.filter_by(customer_id=current_user.id, status='sold')\
+        .order_by(Ticket.purchased_at.desc())\
+        .paginate(page=page, per_page=10)
+    
+    return render_template('customer/purchases.html',
+                           purchases=purchases_paginated.items,
+                           pagination=purchases_paginated)
+
+
+@customer_bp.route('/event/<event_id>/review', methods=['GET', 'POST'])
+@login_required
+@customer_required
+def review_event(event_id):
+    """Leave review for event"""
+    event = Event.query.get_or_404(event_id)
+    
+    # Check if customer purchased ticket
+    ticket = Ticket.query.filter_by(event_id=event_id, customer_id=current_user.id, status='sold').first()
+    if not ticket:
+        flash('You must purchase a ticket to review this event.', 'danger')
+        return redirect(url_for('customer.event_detail', event_id=event_id))
+    
+    # Check if already reviewed
+    existing_review = Review.query.filter_by(event_id=event_id, customer_id=current_user.id).first()
+    if existing_review:
+        flash('You have already reviewed this event.', 'info')
+        return redirect(url_for('customer.event_detail', event_id=event_id))
+    
+    if request.method == 'POST':
+        review = Review(
+            id=generate_id(),
+            event_id=event_id,
+            customer_id=current_user.id,
+            rating=int(request.form.get('rating')),
+            comment=request.form.get('comment')
+        )
+        db.session.add(review)
+        db.session.commit()
+        
+        flash('Review posted successfully!', 'success')
+        return redirect(url_for('customer.event_detail', event_id=event_id))
+    
+    return render_template('customer/review_event.html', event=event)
+
+
+@customer_bp.route('/reviews')
+@login_required
+@customer_required
+def my_reviews():
+    """View my reviews"""
+    page = request.args.get('page', 1, type=int)
+    
+    reviews_paginated = Review.query.filter_by(customer_id=current_user.id)\
+        .order_by(Review.created_at.desc())\
+        .paginate(page=page, per_page=10)
+    
+    return render_template('customer/my_reviews.html',
+                           reviews=reviews_paginated.items,
+                           pagination=reviews_paginated)
