@@ -1,3 +1,8 @@
+# ============================================================
+#  MLOLONGO STUDENT MANAGEMEMT SYSTEM
+#  Version 1 — with while loop, nested dictinary and log in
+#  By: Brevine Oduor Osoro
+# ============================================================
 while True:
     print("MLOLONGO STUDENT MANAGEMEMT SYSTEM")
     students= ("Jane Omondi","Ephy Akoth","Stacy Otieno", "Odhiambo Kevin","Melvin Oduor")

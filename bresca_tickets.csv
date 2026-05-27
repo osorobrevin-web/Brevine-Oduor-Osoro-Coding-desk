@@ -1,0 +1,4 @@
+TicketNo,Client,EventName,EventDate,CancellationDeadline,CustomerName,Phone,IDNumber,Category,Amount,PaymentStatus,WristbandColor,FirstEntry,EntryTime,Attended,CancelStatus,CancelRequestedBy,CancelRequestTime,ClientApproval,ClientApprovalTime,AdminApproval,AdminApprovalTime,RefundAmount,ClientShare,BReSCAShare,RefundStatus,DOA
+BReSCA-2026-DALA-0001,DALA,LAUGH your jaws open,30/5/2026,,JOHN LONYANGAPUO,0790936238,41536646,VVVIP,5000,Paid,Gold,False,,False,,,,,,,,2500,,,Refunded,27/05/2026 13:11
+BReSCA-2026-DALA-0002,DALA,JOWI JAMUOMO,12/06/2026,01/06/2026,JOHN Odhiambo,079063231,41536645,VIP,2000,Paid,Blue,True,27/05/2026 13:55,True,Active,,27/05/2026 13:50,,27/05/2026 13:52,Rejected by Admin,27/05/2026 13:53,0,0,0,N/A,27/05/2026 13:23
+BReSCA-2026-DALA-0003,DALA,Graduation EVent,12/11/2026,13/10/2026,Solomon KImori,0790936239,3636272637,Regular,500,Paid,Green,False,,False,Active,,,,,,,0,0,0,N/A,27/05/2026 14:13

@@ -1,3 +1,8 @@
+# ============================================================
+#  MLOLONGO GENERAL HOSPITAL MANAGEMENT SYSTEM
+#  Version 1 — with Lists, dictionaries and basics.
+#  By: Brevine Oduor Osoro
+# ============================================================
 import getpass
 attempts=0
 while attempts <3:

@@ -1,3 +1,8 @@
+# ============================================================
+#  MLOLONGO GENERAL HOSPITAL MANAGEMENT SYSTEM
+#  Version 2 — with functions and csv data file reading
+#  By: Brevine Oduor Osoro
+# ============================================================
 import getpass
 import datetime
 import csv

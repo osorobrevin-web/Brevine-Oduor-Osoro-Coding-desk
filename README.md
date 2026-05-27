@@ -3,7 +3,7 @@ Brevine Oduor Osoro — Coding Desk 🩺💻
 > "I didn't wait to finish nursing school 
 > to start building the future of healthcare."
 
-Who I Am
+**Who I Am**
 
 I am **Brevine Oduor Osoro** — a final year 
 Bachelor of Science in Nursing (BScN) student 
@@ -17,7 +17,7 @@ I am a self-taught developer who started
 coding on a **mobile phone** with no tutorials 
 and no prior programming experience- just phone and ai generated coding notes 😂💪
 
-Skills 🛠️
+**Skills 🛠️**
 
 Languages:  Python | HTML | CSS
 Tools:      VS Code | Git | GitHub|pydroid|acode
@@ -40,7 +40,7 @@ Background 🩺
 - Passionate about the intersection of 
   healthcare and technology
   
-My Coding Journey 📅
+**My Coding Journey 📅**
 
 Started: 19th May 2026
 Environment: Started on mobile → Now on laptop

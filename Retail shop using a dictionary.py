@@ -1,3 +1,8 @@
+# ============================================================
+#  BREVINE RETAIL SHOP
+#  Version 1 — with while loop, list and log in
+#  By: Brevine Oduor Osoro
+# ============================================================
 import getpass
 attempts=0
 while attempts <3:
