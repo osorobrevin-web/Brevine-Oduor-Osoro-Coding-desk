@@ -1,0 +1,168 @@
+from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask_login import login_required, current_user
+from datetime import datetime
+from app import db
+from app.decorators import client_required
+from app.models import User, Event, Ticket
+from app.core.utils import generate_id, calculate_total_cost, calculate_client_payout
+
+client_bp = Blueprint('client', __name__, url_prefix='/client')
+
+
+@client_bp.route('/dashboard')
+@login_required
+@client_required
+def dashboard():
+    """Client dashboard"""
+    client_id = current_user.id
+    
+    # Client's events
+    events_count = Event.query.filter_by(client_id=client_id).count()
+    
+    # Tickets created by this client
+    total_tickets = Ticket.query.filter_by(client_id=client_id).count()
+    tickets_sold = Ticket.query.filter_by(client_id=client_id, status='sold').count()
+    
+    # Revenue calculations
+    tickets = Ticket.query.filter_by(client_id=client_id, status='sold').all()
+    total_revenue = sum(t.price for t in tickets)
+    total_commission_paid = sum(t.bresca_commission for t in tickets)
+    total_mpesa_costs = sum(t.mpesa_cost for t in tickets)
+    net_payout = total_revenue - total_commission_paid - total_mpesa_costs
+    
+    return render_template('client/dashboard.html',
+                           events_count=events_count,
+                           total_tickets=total_tickets,
+                           tickets_sold=tickets_sold,
+                           total_revenue=total_revenue,
+                           total_commission_paid=total_commission_paid,
+                           total_mpesa_costs=total_mpesa_costs,
+                           net_payout=net_payout)
+
+
+@client_bp.route('/events')
+@login_required
+@client_required
+def events():
+    """Client's events"""
+    client_id = current_user.id
+    page = request.args.get('page', 1, type=int)
+    events_paginated = Event.query.filter_by(client_id=client_id).paginate(page=page, per_page=10)
+    
+    return render_template('client/events.html',
+                           events=events_paginated.items,
+                           pagination=events_paginated)
+
+
+@client_bp.route('/event/create', methods=['GET', 'POST'])
+@login_required
+@client_required
+def create_event():
+    """Create new event"""
+    if request.method == 'POST':
+        event = Event(
+            id=generate_id(),
+            client_id=current_user.id,
+            name=request.form.get('name'),
+            description=request.form.get('description'),
+            date=datetime.fromisoformat(request.form.get('date')),
+            location=request.form.get('location'),
+            capacity=int(request.form.get('capacity'))
+        )
+        db.session.add(event)
+        db.session.commit()
+        flash('Event created successfully!', 'success')
+        return redirect(url_for('client.events'))
+    
+    return render_template('client/create_event.html')
+
+
+@client_bp.route('/event/<event_id>/tickets', methods=['GET', 'POST'])
+@login_required
+@client_required
+def manage_tickets(event_id):
+    """Create and manage tickets for an event"""
+    event = Event.query.get_or_404(event_id)
+    
+    # Verify ownership
+    if event.client_id != current_user.id:
+        flash('You do not own this event.', 'danger')
+        return redirect(url_for('client.events'))
+    
+    if request.method == 'POST':
+        quantity = int(request.form.get('quantity', 1))
+        price = float(request.form.get('price'))
+        
+        for _ in range(quantity):
+            commission, mpesa_cost, total_cost = calculate_total_cost(price)
+            ticket = Ticket(
+                id=generate_id(),
+                event_id=event_id,
+                client_id=current_user.id,
+                price=price,
+                bresca_commission=commission,
+                mpesa_cost=mpesa_cost,
+                status='available'
+            )
+            db.session.add(ticket)
+        
+        db.session.commit()
+        flash(f'Created {quantity} tickets!', 'success')
+        return redirect(url_for('client.event_detail', event_id=event_id))
+    
+    available = event.available_seats()
+    tickets = Ticket.query.filter_by(event_id=event_id).all()
+    
+    return render_template('client/manage_tickets.html',
+                           event=event,
+                           available_seats=available,
+                           tickets=tickets)
+
+
+@client_bp.route('/event/<event_id>')
+@login_required
+@client_required
+def event_detail(event_id):
+    """Event details and ticket overview"""
+    event = Event.query.get_or_404(event_id)
+    
+    if event.client_id != current_user.id:
+        flash('You do not own this event.', 'danger')
+        return redirect(url_for('client.events'))
+    
+    tickets = Ticket.query.filter_by(event_id=event_id).all()
+    sold_tickets = [t for t in tickets if t.status == 'sold']
+    available_tickets = [t for t in tickets if t.status == 'available']
+    
+    total_revenue = sum(t.price for t in sold_tickets)
+    total_fees = sum(t.bresca_commission + t.mpesa_cost for t in sold_tickets)
+    net_revenue = total_revenue - total_fees
+    
+    return render_template('client/event_detail.html',
+                           event=event,
+                           total_tickets=len(tickets),
+                           sold_tickets=len(sold_tickets),
+                           available_tickets=len(available_tickets),
+                           total_revenue=total_revenue,
+                           total_fees=total_fees,
+                           net_revenue=net_revenue)
+
+
+@client_bp.route('/commissions')
+@login_required
+@client_required
+def commissions():
+    """View commission tracking"""
+    tickets = Ticket.query.filter_by(client_id=current_user.id).all()
+    
+    total_price = sum(t.price for t in tickets)
+    total_commission = sum(t.bresca_commission for t in tickets)
+    total_mpesa = sum(t.mpesa_cost for t in tickets)
+    total_payout = total_price - total_commission - total_mpesa
+    
+    return render_template('client/commissions.html',
+                           total_price=total_price,
+                           total_commission=total_commission,
+                           total_mpesa=total_mpesa,
+                           total_payout=total_payout,
+                           tickets=tickets)
