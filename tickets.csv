@@ -1,0 +1,2 @@
+ticket_no,client_id,event_id,event_name,customer_name,phone,id_number,email,category,price,commission,transaction_cost,payment_status,wristband_qr,first_entry,entry_time,attended,refund_amount,refund_status,purchase_date
+TZ-2026-149E-0001,149EDAD5,D23B9880,Graduation,James Riaga,0790936232,4566762,jamesriaga@gmail.com,VVVIP,3000.0,210.00000000000003,10,PAID,WB-TZ-2026-149E-0001,False,,False,0,NONE,2026-05-28

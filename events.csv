@@ -1,0 +1,4 @@
+event_id,client_id,event_name,event_date,event_time,venue,description,poster,status,vvvip_price,vvvip_seats,vip_price,vip_seats,regular_price,regular_seats,cancel_by_date,refund_percent,created_date
+A728FA79,208F1170,Open Mic,2026-06-12,5:00 PM,"Baraza Media Lab-Lake Basin mall, Kisumu",Open mic for comics,,ACTIVE,3000.0,40,2000.0,70,1000.0,100,2026-06-23,10,2026-05-27
+71EEE522,208F1170,dibala,2026-05-30,8:00 AM,Nairobi,dibala kalabsh clash party,,ACTIVE,0.0,0,500.0,39,0.0,8,2026-05-29,10,2026-05-27
+D23B9880,149EDAD5,Graduation,2026-11-13,9.00 AM,Graduation Square,Graduation for the third cohort,,ACTIVE,3000.0,34,2000.0,70,1000.0,100,2026-11-7,10,2026-05-27
